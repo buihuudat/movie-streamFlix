@@ -5,14 +5,15 @@ import {
   Search,
   Filter,
   Play,
+  Info,
   Star,
+  Calendar,
   Heart,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -26,25 +27,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { MovieCard } from "@/components/MovieCard";
 import { Navigation } from "@/components/Navigation";
 import { useFavorites } from "@/hooks/useFavorites";
 import Image from "next/image";
+import { MovieCard } from "@/components/MovieCard";
 
-interface Movie {
+interface TVShow {
   id: number;
-  title: string;
+  name: string;
   overview: string;
   poster_path: string | null;
   backdrop_path: string | null;
-  release_date: string;
+  first_air_date: string;
   vote_average: number;
   genre_ids: number[];
   popularity: number;
   adult: boolean;
   original_language: string;
-  video: boolean;
 }
 
 interface Genre {
@@ -54,7 +55,7 @@ interface Genre {
 
 interface TMDbResponse {
   page: number;
-  results: Movie[];
+  results: TVShow[];
   total_pages: number;
   total_results: number;
 }
@@ -63,8 +64,8 @@ const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-export default function HomePage() {
-  const [movies, setMovies] = useState<Movie[]>([]);
+export default function TVShowsPage() {
+  const [tvShows, setTVShows] = useState<TVShow[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,17 +77,15 @@ export default function HomePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedShow, setSelectedShow] = useState<TVShow | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
-  const [showMovieInfo, setShowMovieInfo] = useState(false);
-  const [forcusRerender, setForcusRerender] = useState(0);
+  const [showInfo, setShowInfo] = useState(false);
 
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } =
     useFavorites();
 
   const years = [
     "all",
-    "2025",
     "2024",
     "2023",
     "2022",
@@ -102,8 +101,8 @@ export default function HomePage() {
   const sortOptions = [
     { value: "popularity.desc", label: "Most Popular" },
     { value: "vote_average.desc", label: "Highest Rated" },
-    { value: "release_date.desc", label: "Newest" },
-    { value: "title.asc", label: "A-Z" },
+    { value: "first_air_date.desc", label: "Newest" },
+    { value: "name.asc", label: "A-Z" },
   ];
 
   // Fetch genres
@@ -111,7 +110,7 @@ export default function HomePage() {
     const fetchGenres = async () => {
       try {
         const response = await fetch(
-          `${BASE_URL}/genre/movie/list?api_key=${API_KEY}`
+          `${BASE_URL}/genre/tv/list?api_key=${API_KEY}`
         );
         const data = await response.json();
         setGenres(data.genres || []);
@@ -122,21 +121,21 @@ export default function HomePage() {
     fetchGenres();
   }, []);
 
-  // Fetch movies
+  // Fetch TV shows
   useEffect(() => {
-    const fetchMovies = async () => {
+    const fetchTVShows = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${currentPage}&sort_by=${sortBy}`;
+        let url = `${BASE_URL}/discover/tv?api_key=${API_KEY}&page=${currentPage}&sort_by=${sortBy}`;
 
         if (selectedGenre !== "all") {
           url += `&with_genres=${selectedGenre}`;
         }
 
         if (selectedYear !== "all") {
-          url += `&primary_release_year=${selectedYear}`;
+          url += `&first_air_date_year=${selectedYear}`;
         }
 
         if (selectedRating !== "all") {
@@ -145,11 +144,11 @@ export default function HomePage() {
 
         const response = await fetch(url);
         if (!response.ok) {
-          throw new Error("Failed to fetch movies");
+          throw new Error("Failed to fetch TV shows");
         }
 
         const data: TMDbResponse = await response.json();
-        setMovies(data.results || []);
+        setTVShows(data.results || []);
         setTotalPages(data.total_pages || 1);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -158,19 +157,12 @@ export default function HomePage() {
       }
     };
 
-    fetchMovies();
-  }, [
-    currentPage,
-    sortBy,
-    selectedGenre,
-    selectedYear,
-    selectedRating,
-    forcusRerender,
-  ]);
+    fetchTVShows();
+  }, [currentPage, sortBy, selectedGenre, selectedYear, selectedRating]);
 
-  // Search movies
+  // Search TV shows
   useEffect(() => {
-    const searchMovies = async () => {
+    const searchTVShows = async () => {
       if (!searchQuery.trim()) return;
 
       setLoading(true);
@@ -178,16 +170,16 @@ export default function HomePage() {
 
       try {
         const response = await fetch(
-          `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(
+          `${BASE_URL}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(
             searchQuery
           )}&page=${currentPage}`
         );
         if (!response.ok) {
-          throw new Error("Failed to search movies");
+          throw new Error("Failed to search TV shows");
         }
 
         const data: TMDbResponse = await response.json();
-        setMovies(data.results || []);
+        setTVShows(data.results || []);
         setTotalPages(data.total_pages || 1);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -197,26 +189,26 @@ export default function HomePage() {
     };
 
     if (searchQuery.trim()) {
-      const debounceTimer = setTimeout(searchMovies, 500);
+      const debounceTimer = setTimeout(searchTVShows, 500);
       return () => clearTimeout(debounceTimer);
     }
   }, [searchQuery, currentPage]);
 
-  const handlePlay = (movie: Movie) => {
-    setSelectedMovie(movie);
+  const handlePlay = (show: TVShow) => {
+    setSelectedShow(show);
     setShowVideoPlayer(true);
   };
 
-  const handleMoreInfo = (movie: Movie) => {
-    setSelectedMovie(movie);
-    setShowMovieInfo(true);
+  const handleMoreInfo = (show: TVShow) => {
+    setSelectedShow(show);
+    setShowInfo(true);
   };
 
-  const handleFavoriteToggle = (movie: Movie) => {
-    if (isFavorite(movie.id)) {
-      removeFromFavorites(movie.id);
+  const handleFavoriteToggle = (show: TVShow) => {
+    if (isFavorite(show.id)) {
+      removeFromFavorites(show.id);
     } else {
-      addToFavorites({ ...movie, media_type: "movie" });
+      addToFavorites({ ...show, media_type: "tv", title: show.name });
     }
   };
 
@@ -227,7 +219,6 @@ export default function HomePage() {
     setSortBy("popularity.desc");
     setSearchQuery("");
     setCurrentPage(1);
-    setForcusRerender(forcusRerender + 1);
   };
 
   const handleFilterChange = () => {
@@ -246,22 +237,17 @@ export default function HomePage() {
     }
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-semibold mb-2">Something went wrong</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+
+      {/* Page Header */}
+      <div className="w-full px-4 lg:px-8 py-6 border-b">
+        <h1 className="text-3xl font-bold">TV Shows</h1>
+        <p className="text-muted-foreground mt-2">
+          Discover the best TV series and shows
+        </p>
+      </div>
 
       {/* Search and Filters */}
       <div className="w-full px-4 lg:px-8 py-6">
@@ -270,7 +256,7 @@ export default function HomePage() {
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search movies..."
+              placeholder="Search TV shows..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -388,12 +374,12 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Movies Grid */}
+      {/* TV Shows Grid */}
       <main className="w-full px-4 lg:px-8 pb-8">
         {loading ? (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Loading Movies...</h2>
+              <h2 className="text-xl font-semibold">Loading TV Shows...</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 md:gap-6">
               {Array.from({ length: 20 }).map((_, index) => (
@@ -401,14 +387,14 @@ export default function HomePage() {
               ))}
             </div>
           </>
-        ) : movies.length === 0 ? (
+        ) : tvShows.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🎬</div>
-            <h2 className="text-2xl font-semibold mb-2">No movies found</h2>
+            <div className="text-6xl mb-4">📺</div>
+            <h2 className="text-2xl font-semibold mb-2">No TV shows found</h2>
             <p className="text-muted-foreground mb-4">
               {searchQuery
                 ? `No results for "${searchQuery}"`
-                : "No movies match your filters"}
+                : "No TV shows match your filters"}
             </p>
             <Button onClick={clearFilters} variant="outline">
               Clear filters
@@ -420,25 +406,157 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold">
                 {searchQuery
                   ? `Search results for "${searchQuery}"`
-                  : "Popular Movies"}
+                  : "All TV Shows"}
                 <span className="text-muted-foreground ml-2">
-                  ({movies.length} results)
+                  ({tvShows.length} results)
                 </span>
               </h2>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4 md:gap-6">
-              {movies.map((movie) => (
-                <MovieCard
-                  key={movie.id}
-                  movie={movie}
-                  genres={genres}
-                  onPlay={handlePlay}
-                  onMoreInfo={handleMoreInfo}
-                  onFavoriteToggle={handleFavoriteToggle}
-                  isFavorite={isFavorite(movie.id)}
-                />
-              ))}
+              {tvShows.map((show) => {
+                const movieFormat = {
+                  ...show,
+                  title: show.name,
+                  release_date: show.first_air_date,
+                };
+                return (
+                  <div
+                    key={show.id}
+                    className="group relative overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer h-full"
+                  >
+                    <div className="aspect-[2/3] relative overflow-hidden rounded-lg">
+                      <Image
+                        src={
+                          show.poster_path
+                            ? `${IMAGE_BASE_URL}${show.poster_path}`
+                            : "/placeholder.svg?height=750&width=500"
+                        }
+                        alt={show.name}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-110"
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+                      />
+
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <h3 className="text-white font-bold text-lg line-clamp-2">
+                              {show.name}
+                            </h3>
+                            <div className="flex items-center gap-2 text-sm text-gray-300">
+                              <Calendar className="w-4 h-4" />
+                              <span>
+                                {show.first_air_date
+                                  ? new Date(show.first_air_date).getFullYear()
+                                  : "N/A"}
+                              </span>
+                              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                              <span>
+                                {show.vote_average
+                                  ? show.vote_average.toFixed(1)
+                                  : "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {genres
+                                .filter((genre) =>
+                                  show.genre_ids.includes(genre.id)
+                                )
+                                .slice(0, 2)
+                                .map((genre) => (
+                                  <Badge
+                                    key={genre.id}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {genre.name}
+                                  </Badge>
+                                ))}
+                            </div>
+                          </div>
+
+                          <p className="text-gray-300 text-sm line-clamp-3">
+                            {show.overview}
+                          </p>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePlay(show);
+                              }}
+                              className="flex-1 bg-red-600 hover:bg-red-700"
+                            >
+                              <Play className="w-4 h-4 mr-1" />
+                              Play
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMoreInfo(show);
+                              }}
+                              className="flex-1"
+                            >
+                              <Info className="w-4 h-4 mr-1" />
+                              Info
+                            </Button>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFavoriteToggle(show);
+                            }}
+                            className={`w-full ${
+                              isFavorite(show.id)
+                                ? "text-red-600"
+                                : "text-white"
+                            }`}
+                          >
+                            <Heart
+                              className={`w-4 h-4 mr-2 ${
+                                isFavorite(show.id) ? "fill-red-600" : ""
+                              }`}
+                            />
+                            {isFavorite(show.id)
+                              ? "Remove from List"
+                              : "Add to List"}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Show Info (Always Visible) */}
+                    <div className="p-3 space-y-2">
+                      <h3 className="font-semibold text-sm line-clamp-1">
+                        {show.name}
+                      </h3>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          {show.first_air_date
+                            ? new Date(show.first_air_date).getFullYear()
+                            : "N/A"}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                          <span>
+                            {show.vote_average
+                              ? show.vote_average.toFixed(1)
+                              : "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Pagination */}
@@ -451,6 +569,7 @@ export default function HomePage() {
                   className="flex items-center gap-2"
                 >
                   <ChevronLeft className="w-4 h-4" />
+                  Previous
                 </Button>
 
                 <span className="text-sm text-muted-foreground">
@@ -463,6 +582,7 @@ export default function HomePage() {
                   disabled={currentPage === totalPages}
                   className="flex items-center gap-2"
                 >
+                  Next
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -474,31 +594,35 @@ export default function HomePage() {
       {/* Video Player Modal */}
       <Dialog open={showVideoPlayer} onOpenChange={setShowVideoPlayer}>
         <DialogContent className="max-w-6xl w-full h-[80vh] p-0">
-          {selectedMovie && (
+          {selectedShow && (
             <VideoPlayer
-              movie={selectedMovie}
+              movie={{
+                ...selectedShow,
+                title: selectedShow.name,
+                release_date: selectedShow.first_air_date,
+              }}
               onClose={() => setShowVideoPlayer(false)}
             />
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Movie Info Modal */}
-      <Dialog open={showMovieInfo} onOpenChange={setShowMovieInfo}>
+      {/* Show Info Modal */}
+      <Dialog open={showInfo} onOpenChange={setShowInfo}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedMovie?.title}</DialogTitle>
+            <DialogTitle>{selectedShow?.name}</DialogTitle>
           </DialogHeader>
-          {selectedMovie && (
+          {selectedShow && (
             <div className="space-y-4">
               <div className="flex gap-4">
                 <Image
                   src={
-                    selectedMovie.poster_path
-                      ? `${IMAGE_BASE_URL}${selectedMovie.poster_path}`
+                    selectedShow.poster_path
+                      ? `${IMAGE_BASE_URL}${selectedShow.poster_path}`
                       : "/placeholder.svg?height=300&width=200"
                   }
-                  alt={selectedMovie.title}
+                  alt={selectedShow.name}
                   width={150}
                   height={225}
                   className="rounded-lg object-cover"
@@ -506,15 +630,15 @@ export default function HomePage() {
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>
-                      {selectedMovie.release_date
-                        ? new Date(selectedMovie.release_date).getFullYear()
+                      {selectedShow.first_air_date
+                        ? new Date(selectedShow.first_air_date).getFullYear()
                         : "N/A"}
                     </span>
                     <div className="flex items-center gap-1">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       <span>
-                        {selectedMovie.vote_average
-                          ? selectedMovie.vote_average.toFixed(1)
+                        {selectedShow.vote_average
+                          ? selectedShow.vote_average.toFixed(1)
                           : "N/A"}
                       </span>
                     </div>
@@ -522,7 +646,7 @@ export default function HomePage() {
                   <div className="flex flex-wrap gap-2">
                     {genres
                       .filter((genre) =>
-                        selectedMovie.genre_ids.includes(genre.id)
+                        selectedShow.genre_ids.includes(genre.id)
                       )
                       .map((genre) => (
                         <Badge key={genre.id} variant="secondary">
@@ -530,12 +654,12 @@ export default function HomePage() {
                         </Badge>
                       ))}
                   </div>
-                  <p className="text-sm">{selectedMovie.overview}</p>
+                  <p className="text-sm">{selectedShow.overview}</p>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {
-                        setShowMovieInfo(false);
-                        handlePlay(selectedMovie);
+                        setShowInfo(false);
+                        handlePlay(selectedShow);
                       }}
                       className="bg-red-600 hover:bg-red-700"
                     >
@@ -544,17 +668,17 @@ export default function HomePage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => handleFavoriteToggle(selectedMovie)}
+                      onClick={() => handleFavoriteToggle(selectedShow)}
                       className={
-                        isFavorite(selectedMovie.id) ? "text-red-600" : ""
+                        isFavorite(selectedShow.id) ? "text-red-600" : ""
                       }
                     >
                       <Heart
                         className={`w-4 h-4 mr-2 ${
-                          isFavorite(selectedMovie.id) ? "fill-red-600" : ""
+                          isFavorite(selectedShow.id) ? "fill-red-600" : ""
                         }`}
                       />
-                      {isFavorite(selectedMovie.id)
+                      {isFavorite(selectedShow.id)
                         ? "Remove from List"
                         : "Add to List"}
                     </Button>

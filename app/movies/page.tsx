@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -30,7 +29,6 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { MovieCard } from "@/components/MovieCard";
 import { Navigation } from "@/components/Navigation";
 import { useFavorites } from "@/hooks/useFavorites";
-import Image from "next/image";
 
 interface Movie {
   id: number;
@@ -61,9 +59,8 @@ interface TMDbResponse {
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const BASE_URL = "https://api.themoviedb.org/3";
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-export default function HomePage() {
+export default function MoviesPage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,14 +76,12 @@ export default function HomePage() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [showMovieInfo, setShowMovieInfo] = useState(false);
-  const [forcusRerender, setForcusRerender] = useState(0);
 
   const { favorites, addToFavorites, removeFromFavorites, isFavorite } =
     useFavorites();
 
   const years = [
     "all",
-    "2025",
     "2024",
     "2023",
     "2022",
@@ -159,14 +154,7 @@ export default function HomePage() {
     };
 
     fetchMovies();
-  }, [
-    currentPage,
-    sortBy,
-    selectedGenre,
-    selectedYear,
-    selectedRating,
-    forcusRerender,
-  ]);
+  }, [currentPage, sortBy, selectedGenre, selectedYear, selectedRating]);
 
   // Search movies
   useEffect(() => {
@@ -227,7 +215,6 @@ export default function HomePage() {
     setSortBy("popularity.desc");
     setSearchQuery("");
     setCurrentPage(1);
-    setForcusRerender(forcusRerender + 1);
   };
 
   const handleFilterChange = () => {
@@ -246,22 +233,17 @@ export default function HomePage() {
     }
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-semibold mb-2">Something went wrong</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+
+      {/* Page Header */}
+      <div className="w-full px-4 lg:px-8 py-6 border-b">
+        <h1 className="text-3xl font-bold">Movies</h1>
+        <p className="text-muted-foreground mt-2">
+          Discover the latest and greatest movies
+        </p>
+      </div>
 
       {/* Search and Filters */}
       <div className="w-full px-4 lg:px-8 py-6">
@@ -420,7 +402,7 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold">
                 {searchQuery
                   ? `Search results for "${searchQuery}"`
-                  : "Popular Movies"}
+                  : "All Movies"}
                 <span className="text-muted-foreground ml-2">
                   ({movies.length} results)
                 </span>
@@ -451,6 +433,7 @@ export default function HomePage() {
                   className="flex items-center gap-2"
                 >
                   <ChevronLeft className="w-4 h-4" />
+                  Previous
                 </Button>
 
                 <span className="text-sm text-muted-foreground">
@@ -463,6 +446,7 @@ export default function HomePage() {
                   disabled={currentPage === totalPages}
                   className="flex items-center gap-2"
                 >
+                  Next
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -492,16 +476,14 @@ export default function HomePage() {
           {selectedMovie && (
             <div className="space-y-4">
               <div className="flex gap-4">
-                <Image
+                <img
                   src={
                     selectedMovie.poster_path
-                      ? `${IMAGE_BASE_URL}${selectedMovie.poster_path}`
+                      ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}`
                       : "/placeholder.svg?height=300&width=200"
                   }
                   alt={selectedMovie.title}
-                  width={150}
-                  height={225}
-                  className="rounded-lg object-cover"
+                  className="w-32 h-48 rounded-lg object-cover"
                 />
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -518,17 +500,6 @@ export default function HomePage() {
                           : "N/A"}
                       </span>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {genres
-                      .filter((genre) =>
-                        selectedMovie.genre_ids.includes(genre.id)
-                      )
-                      .map((genre) => (
-                        <Badge key={genre.id} variant="secondary">
-                          {genre.name}
-                        </Badge>
-                      ))}
                   </div>
                   <p className="text-sm">{selectedMovie.overview}</p>
                   <div className="flex gap-2">
