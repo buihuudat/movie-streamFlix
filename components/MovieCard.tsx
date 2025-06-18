@@ -27,30 +27,28 @@ interface Genre {
   name: string;
 }
 
-interface MovieCardProps {
+interface MovieCardLoadedProps {
+  isLoading?: false;
   movie: Movie;
   genres: Genre[];
   onPlay: (movie: Movie) => void;
   onMoreInfo: (movie: Movie) => void;
-  onFavoriteToggle: (movie: Movie) => void;
+  onFavoriteToggle: (movie: Movie & { genres?: Genre[] }) => void;
   isFavorite: boolean;
-  isLoading?: boolean;
 }
+
+interface MovieCardLoadingProps {
+  isLoading: true;
+}
+
+type MovieCardProps = MovieCardLoadedProps | MovieCardLoadingProps;
 
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 
-export function MovieCard({
-  movie,
-  genres,
-  onPlay,
-  onMoreInfo,
-  onFavoriteToggle,
-  isFavorite,
-  isLoading = false,
-}: MovieCardProps) {
+export function MovieCard(props: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  if (isLoading) {
+  if (props?.isLoading) {
     return (
       <Card className="h-full p-0">
         <CardContent className="p-0">
@@ -66,6 +64,9 @@ export function MovieCard({
       </Card>
     );
   }
+
+  const { movie, genres, onPlay, onMoreInfo, onFavoriteToggle, isFavorite } =
+    props;
 
   const movieGenres = genres.filter((genre) =>
     movie.genre_ids.includes(genre.id)

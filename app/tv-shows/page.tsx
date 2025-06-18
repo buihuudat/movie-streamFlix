@@ -29,10 +29,10 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { Navigation } from "@/components/Navigation";
 import { useFavorites } from "@/hooks/useFavorites";
 import Image from "next/image";
 import { MovieCard } from "@/components/MovieCard";
+import { Navigation } from "@/components/Navigation";
 
 interface TVShow {
   id: number;

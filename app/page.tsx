@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/dialog";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { MovieCard } from "@/components/MovieCard";
-import { Navigation } from "@/components/Navigation";
 import { useFavorites } from "@/hooks/useFavorites";
 import Image from "next/image";
+import { Navigation } from "@/components/Navigation";
 
 interface Movie {
   id: number;
